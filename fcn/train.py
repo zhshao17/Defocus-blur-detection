@@ -27,16 +27,24 @@ def _fast_hist(label_true, label_pred, n_class):
 
 
 # 根据混淆矩阵计算Acc和mIou
-def label_accuracy_score(label_trues, label_preds, n_class):
+def label_accuracy_score(label_trues, label_preds,label_trues_float, label_preds_float, n_class):
     """Returns accuracy score evaluation result.
       - overall accuracy
       - mean accuracy
       - mean IU
+      - F-meature
+      - MAE  每张图的MAE 共160*160
     """
+    # hist每列为预测为该类的数量，每行为该类的真实数量，对角线为预测对的数量
     hist = np.zeros((n_class, n_class))
+    mae = label_trues_float-label_preds_float
+    mae = np.maximum(mae,-mae)
+    n=np.size(label_preds,0)
+    MAE = mae.sum()/n
     for lt, lp in zip(label_trues, label_preds):
         hist += _fast_hist(lt.flatten(), lp.flatten(), n_class)
     acc = np.diag(hist).sum() / hist.sum()
+    F1 = hist[0][0]*2/(hist[0][0]*2+hist[0][1]+hist[1][0])
     with np.errstate(divide='ignore', invalid='ignore'):
         acc_cls = np.diag(hist) / hist.sum(axis=1)
     acc_cls = np.nanmean(acc_cls)
@@ -46,7 +54,7 @@ def label_accuracy_score(label_trues, label_preds, n_class):
         )
     mean_iu = np.nanmean(iu)
     freq = hist.sum(axis=1) / hist.sum()
-    return acc, acc_cls, mean_iu
+    return acc, acc_cls, mean_iu, F1, MAE
 
 
 from datetime import datetime
@@ -58,13 +66,16 @@ import matplotlib.pyplot as plt
 def train(epo_num=1, show_vgg_params=False):
     # 实例化数据集
     bag = data.BagDataset(data.transform)
-
-    train_size = int(0.9 * len(bag))
-    test_size = len(bag) - train_size
-    train_dataset, test_dataset = random_split(bag, [train_size, test_size])
+    bag2 = data.BagDataset2(data.transform)
+    train_dataset = bag
+    test_dataset = bag2
+    # train_size = int(0.9 * len(bag))
+    # test_size = len(bag) - train_size
+    # train_dataset, test_dataset = random_split(bag, [train_size, test_size])
     # 利用DataLoader生成一个分batch获取数据的可迭代对象
-    train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=4)
-    test_dataloader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=4)
+    batch_size = 10
+    train_dataloader = DataLoader(train_dataset, batch_size=10, shuffle=True, num_workers=4)
+    test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=True, num_workers=4)
     #开始训练
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -81,6 +92,8 @@ def train(epo_num=1, show_vgg_params=False):
     all_test_iter_loss = []
     test_Acc = []
     test_mIou = []
+    test_F1 = []
+    test_MAE = []
     # start timing
     prev_time = datetime.now()
 
@@ -92,13 +105,12 @@ def train(epo_num=1, show_vgg_params=False):
         for index, (bag, bag_msk) in enumerate(train_dataloader):
             # bag.shape is torch.Size([4, 3, 160, 160])
             # bag_msk.shape is torch.Size([4, 2, 160, 160])
-
             bag = bag.to(device)
             bag_msk = bag_msk.to(device)
 
             optimizer.zero_grad()
             output = fcn_model(bag)
-            output = torch.sigmoid(output)  # output.shape is torch.Size([4, 2, 160, 160])
+            output = torch.sigmoid(output)  # output.shape is torch.Size([5, 2, 160, 160])
             loss = criterion(output, bag_msk)
             loss.backward()  # 需要计算导数，则调用backward
             iter_loss = loss.item()  # .item()返回一个具体的值，一般用于loss和acc
@@ -123,20 +135,22 @@ def train(epo_num=1, show_vgg_params=False):
             for index, (bag, bag_msk) in enumerate(test_dataloader):
                 bag = bag.to(device)
                 bag_msk = bag_msk.to(device)
-
                 optimizer.zero_grad()
                 output = fcn_model(bag)
-                output = torch.sigmoid(output)  # output.shape is torch.Size([4, 2, 160, 160])
+                output = torch.sigmoid(output)  # output.shape is torch.Size([5, 2, 160, 160])
+
                 loss = criterion(output, bag_msk)
                 iter_loss = loss.item()
                 all_test_iter_loss.append(iter_loss)
                 test_loss += iter_loss
 
-                output_np = output.cpu().detach().numpy().copy()
-                output_np = np.argmin(output_np, axis=1)
-                bag_msk_np = bag_msk.cpu().detach().numpy().copy()
-                bag_msk_np = np.argmin(bag_msk_np, axis=1)
+                output_np_float = output.cpu().detach().numpy().copy()
+                output_np = np.argmin(output_np_float, axis=1)
+
+                bag_msk_np_float = bag_msk.cpu().detach().numpy().copy()
+                bag_msk_np = np.argmin(bag_msk_np_float, axis=1)
                 #break
+
 
         cur_time = datetime.now()
         h, remainder = divmod((cur_time - prev_time).seconds, 3600)
@@ -149,21 +163,27 @@ def train(epo_num=1, show_vgg_params=False):
         print('epoch train loss = %f, epoch test loss = %f, %s'
               % (train_loss / len(train_dataloader), test_loss / len(test_dataloader), time_str))
 
-        acc, acc_cls, mIou = label_accuracy_score(bag_msk_np, output_np, 2)
+        acc, acc_cls, mIou, F1, MAE = label_accuracy_score(bag_msk_np, output_np,bag_msk_np_float, output_np_float, 2)
         test_Acc.append(acc)
         test_mIou.append(mIou)
+        test_F1.append(F1)
+        test_MAE.append(MAE)
 
-
-        print('Acc = %f, mIou = %f' % (acc, mIou))
+        print('Acc = %f, mIou = %f, F-meature = %f, MAE = %f' % (acc, mIou, F1, MAE))
         # 每5个epoch存储一次模型
         if np.mod(epo, 5) == 0:
             # 只存储模型参数
             torch.save(fcn_model.state_dict(), './fcn_model_{}.pth'.format(epo))
             print('saveing ./fcn_model_{}.pth'.format(epo))
     # 绘制训练过程数据
+
     cv2.imshow("GT", bag_msk.cpu().numpy()[0][0])
+    for i in range(batch_size):
+        cv2.imwrite('./DUT-DBD_Dataset/gt'+str(i)+'.jpg', bag_msk.cpu().numpy()[i][0] * 255)
     cv2.waitKey(0)
     cv2.imshow("out", output.cpu().numpy()[0][0])
+    for i in range(batch_size):
+        cv2.imwrite('./DUT-DBD_Dataset/out'+str(i)+'.jpg', output.cpu().numpy()[i][0]*255)
     cv2.waitKey(0)
     plt.figure()
     plt.subplot(221)

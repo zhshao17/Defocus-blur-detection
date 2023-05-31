@@ -71,7 +71,7 @@ def train(epochs=1):
         #######################################################
 
         test.test(model, "model/result", test_loader)
-        test.eval1("model/result", '../DUT-DBD_Dataset/DUT500GT-Testing', 1.5)
+        test.eval1("model/result", '../DUT-DBD_Dataset/DUT500GT-Testing/', 1.5)
 
 
 if __name__ == '__main__':
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     torchsummary.summary(model, input_size=(3, 128, 128))
 
     train_data = dataloder.BagDataset(dataloder.transform, '../DUT-DBD_Dataset/DUT600S_Training/')
-    testdata = dataloder.BagDataset(dataloder.transform, '../DUT-DBD_Dataset/DUT500S-Testing')
+    testdata = dataloder.BagDataset(dataloder.transform, '../DUT-DBD_Dataset/DUT500S-Testing/')
     # 利用DataLoader生成一个分batch获取数据的可迭代对象
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
     test_loader = DataLoader(testdata, batch_size=1, shuffle=False, num_workers=0)

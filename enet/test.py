@@ -42,7 +42,7 @@ def test(stict,model, mask_save_path, dataloder):
 
 #保存结果函数
 def to_image_test(tensor, i, tag, path):
-    mask = tensor.detach().cpu().numpy()[0, 1, :, :]  # [i].cpu().clone()
+    mask = tensor.detach().cpu().numpy()[0, 0, :, :]  # [i].cpu().clone()
     # print(mask.shape)
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -101,10 +101,10 @@ def eval1(mask_path, gt_path, m):
         mae = np.mean(np.abs((gt - mask)))
         maes += mae
         precesion = metrics.precision_score(gt.reshape(-1), zeros.reshape(-1))
-        print('pre',precesion)
+        #print('pre',precesion)
         precesions += precesion
         recall = metrics.recall_score(gt.reshape(-1), zeros.reshape(-1))
-        print('recall',recall)
+        #print('recall',recall)
         recalls += recall
         if precesion == 0.0 and recall == 0.0:
             fmeasure = 0.0

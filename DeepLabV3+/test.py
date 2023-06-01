@@ -11,7 +11,6 @@ import click
 import torch.nn.functional as F
 import numpy as np
 from sklearn import metrics
-import enet
 from PIL import Image
 
 import warnings
@@ -35,7 +34,7 @@ def test(stict,model, mask_save_path, dataloder):
     for i, (img,_,name) in tqdm(enumerate(dataloder)):
         img = Variable(img).cuda()
         out= model(img)
-        out = torch.sigmoid(out)
+        out = torch.sigmoid(out[0])
         os.makedirs(mask_save_path, exist_ok=True)
 
         to_image_test(out, name, tag='', path=mask_save_path)

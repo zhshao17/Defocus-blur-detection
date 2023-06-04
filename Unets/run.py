@@ -16,8 +16,6 @@ from Models import NestedUNet, U_Net, R2U_Net, AttU_Net, R2AttU_Net
 from ploting import input_images
 import time
 
-
-
 import dataloder
 from torch.utils.data import DataLoader, random_split
 import test
@@ -29,6 +27,10 @@ import test
 def train(epochs=1):
     # 记录训练过程相关指标
     all_train_iter_loss = []
+    mae = []
+    fmeasure = []
+    recall = []
+    precesion = []
     for i in range(epochs):
 
         train_loss = 0.0
@@ -45,7 +47,7 @@ def train(epochs=1):
             x = x.to(device)
             y = y.to(device)
             # If want to get the input images with their Augmentation - To check the data flowing in net
-            input_images(x, y, i, n_iter, k)
+            # input_images(x, y, i, n_iter, k)
 
             # grid_img = torchvision.utils.make_grid(x)
             # writer1.add_image('images', grid_img, 0)
@@ -55,6 +57,8 @@ def train(epochs=1):
             opt.zero_grad()
             output = model(x)
             output = torch.sigmoid(output)
+            output = torch.flip(output, dims=[1])
+            # output = output[:, 1,0 , :, :]
             loss = criterion(output, y)
             loss.backward()
             train_loss += loss.item()
@@ -71,7 +75,16 @@ def train(epochs=1):
         #######################################################
 
         test.test(model, "model/result", test_loader)
-        test.eval1("model/result", '../DUT-DBD_Dataset/DUT500GT-Testing/', 1.5)
+        mae1, fmeasure1, recall1, precesion1 = test.eval1("model/result", '../DUT-DBD_Dataset/DUT500GT-Testing/', 1.5)
+        print('epoch {}, mae={}, fmeature={}'.format(i, mae1, fmeasure1))
+        print("----------------------------------------------------")
+        mae.append(mae1)
+        fmeasure.append(fmeasure1)
+        recall.append(recall1)
+        precesion.append(precesion1)
+        # x = len(mae)
+        # plt.figure(1)
+        # plt.plot(x, mae)
 
 
 if __name__ == '__main__':
@@ -92,7 +105,7 @@ if __name__ == '__main__':
 
     batch_size = 4
     print('batch_size = ' + str(batch_size))
-    epochs = 15
+    epochs = 100
     print('epoch = ' + str(epochs))
 
     random_seed = random.randint(1, 100)

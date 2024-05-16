@@ -6,8 +6,10 @@ This work was co-authored by [Zonghe Shao](https://github.com/zhshao17), [Qichao
 ## **Method**
 
 A method for **Defocus Blur Detection** that returns to the image itself is designed based on codec architecture, where the encoder consists of ResNet18 as a feature extractor and the encoding is done by Patch Attention Module; a bidirectional recurrent RLRM as a decoder.
+<div  align="center">    
+<img src="./img/model.png" alt="Method"  width="500" >
+</div>
 
-<img src="./img/model.png" alt="Method" weight=50% >
 
 
 ## **Datasets**

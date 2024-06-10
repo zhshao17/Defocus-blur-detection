@@ -1,9 +1,12 @@
 # Defocus Blur Detection
 
-This work was co-authored by [Zonghe Shao](https://github.com/zhshao17), [Qichao Wang](https://github.com/solomonWQC), [YuZhe Cao](https://github.com/yuzheCao423), Yijin Gong, Zhuodong Luo, advised by Prof. [Hao Lu](https://sites.google.com/site/poppinace/).
+This work was co-authored by [Zonghe Shao](https://github.com/zhshao17), [Qichao Wang](https://github.com/solomonWQC), [Yuzhe Cao](https://github.com/yuzheCao423), Yijin Gong, Zhuodong Luo, advised by Prof. [Hao Lu](https://sites.google.com/site/poppinace/).
 
 ## **Topic**
 [Defocus Blur Detection](https://github.com/zhshao17/Defocus-blur-detection) aims to separate in-focus and out-of-focus regions from a single image pixel-wisely. 
+
+
+*Image segmentation?  Obviously not!*
 
 ## **Method**
 
@@ -28,6 +31,6 @@ Comparison with existing work.
 
 <img src="./img/result_datasets.png" alt="Method" weight=50% >
 
-Challenges in some extreme scenarios.
+Performance in some extreme scenarios.
 
 <img src="./img/result_demo.png" alt="Method" weight=50% >
